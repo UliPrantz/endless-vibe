@@ -1,0 +1,6 @@
+{
+  "name": "Endless Vibe",
+  "description": "Infinite AI-generated music tailored to your mood using Google's Lyria Pro model. Control valence, arousal, and genre to shape your personal soundscape.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["AUDIO_GENERATION"]
+}
