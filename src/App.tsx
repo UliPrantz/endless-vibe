@@ -98,7 +98,6 @@ export default function App() {
     setProgress(0);
     setDuration(0);
     isCrossfadingRef.current = false;
-    setIsChangingVibe(false);
   }, []);
 
   const triggerNextGeneration = useCallback(async (currentVibe: VibeState, modelToUse: string, evolutionDepth: number) => {

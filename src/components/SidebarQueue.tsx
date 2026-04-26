@@ -24,8 +24,8 @@ export default function SidebarQueue({ playlist, isPlaying, generationAttempts, 
           <History className="w-3 h-3" />
           Stream Queue
         </h2>
-        <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar pr-2 flex flex-col">
-          <AnimatePresence mode="popLayout">
+        <div className="flex-1 gap-4 overflow-y-auto custom-scrollbar pr-2 flex flex-col">
+          <AnimatePresence>
             {/* History */}
             {[...playlist.history].reverse().map((song) => (
               <motion.div
