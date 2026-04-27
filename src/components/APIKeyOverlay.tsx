@@ -45,8 +45,11 @@ export default function APIKeyOverlay({ show, message, onClose, onSelectKey }: A
                 onClick={onSelectKey}
                 className="w-full h-14 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-lg shadow-indigo-900/20"
               >
-                Select API Key
+                Retry With Current Key
               </button>
+              <p className="text-[11px] text-slate-500">
+                Set <code>GEMINI_API_KEY</code> in <code>.env.local</code> or paste a key from the header key button.
+              </p>
             </div>
           </div>
         </motion.div>

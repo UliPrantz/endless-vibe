@@ -3,12 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export enum GenerationStatus {
-  IDLE = 'IDLE',
-  GENERATING = 'GENERATING',
-  READY = 'READY',
-  ERROR = 'ERROR',
-}
+import type { DimName } from "./musicPipeline/dims";
+
+export type VibeMode = 'basic' | 'advanced';
+
+export type RolledDimValues = Record<DimName, number>;
 
 export interface Song {
   id: string;
@@ -19,6 +18,11 @@ export interface Song {
   arousal: number;
   acousticness: number;
   complexity: number;
+  // Present when the song was generated in Advanced mode. Holds the concrete
+  // value used for every dim (including randomly-rolled ones), so the UI can
+  // render a "currently playing" marker on each slider.
+  advancedValues?: RolledDimValues;
+  mode?: VibeMode;
   customInstructions: string;
   createdAt: number;
   duration?: number;
@@ -34,9 +38,35 @@ export interface VibeState {
   customInstructions: string;
 }
 
+export interface DimSliderState {
+  locked: boolean;
+  value: number;
+  min: number;
+  max: number;
+}
+
+export type AdvancedDims = Record<DimName, DimSliderState>;
+
+export interface AdvancedVibeState {
+  dims: AdvancedDims;
+  genre: string;
+  country?: string;
+  customInstructions: string;
+}
+
+export type QueueItemStatus = 'pending' | 'ready' | 'failed';
+
+export interface QueueItem {
+  id: string;
+  status: QueueItemStatus;
+  song: Song | null;
+  error?: string;
+  attempts: number;
+  generationId: number;
+  requestedAt: number;
+}
+
 export interface PlaylistState {
-  history: Song[];
-  currentSong: Song | null;
-  nextSong: Song | null;
-  status: GenerationStatus;
+  items: QueueItem[];
+  cursor: number;
 }
