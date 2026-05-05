@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import type { Song } from '../types';
 
+type Player = 'A' | 'B';
+
 export interface PlaybackEngine {
   audioRefA: RefObject<HTMLAudioElement | null>;
   audioRefB: RefObject<HTMLAudioElement | null>;
   songA: Song | null;
   songB: Song | null;
-  activePlayer: 'A' | 'B';
+  activePlayer: Player;
   isPlaying: boolean;
   progress: number;
   duration: number;
@@ -43,7 +45,7 @@ export function usePlaybackEngine({
 
   const [songA, setSongA] = useState<Song | null>(null);
   const [songB, setSongB] = useState<Song | null>(null);
-  const [activePlayer, setActivePlayer] = useState<'A' | 'B'>('A');
+  const [activePlayer, setActivePlayer] = useState<Player>('A');
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -51,30 +53,46 @@ export function usePlaybackEngine({
   // Guard so we don't call onAdvance more than once per song-end.
   const advancingRef = useRef(false);
 
-  // Mirror-write currentSong/nextReadySong into the active/inactive slots.
-  // Active slot keeps its track until activePlayer flips, so the fade can
-  // complete without a src change.
+  // Keep slot identity stable across the handoff: once a song is assigned to
+  // A or B, don't move it just because activePlayer changed. That lets the
+  // outgoing element finish fading while the incoming element starts.
   useEffect(() => {
-    if (activePlayer === 'A') {
-      if (currentSong && songA?.id !== currentSong.id) setSongA(currentSong);
-      if (nextReadySong && songB?.id !== nextReadySong.id) setSongB(nextReadySong);
-    } else {
-      if (currentSong && songB?.id !== currentSong.id) setSongB(currentSong);
-      if (nextReadySong && songA?.id !== nextReadySong.id) setSongA(nextReadySong);
+    const aId = songA?.id;
+    const bId = songB?.id;
+
+    if (currentSong && aId !== currentSong.id && bId !== currentSong.id) {
+      if (activePlayer === 'A') {
+        setSongA(currentSong);
+      } else {
+        setSongB(currentSong);
+      }
     }
-  }, [currentSong, nextReadySong, activePlayer, songA?.id, songB?.id]);
+    if (nextReadySong && aId !== nextReadySong.id && bId !== nextReadySong.id) {
+      if (activePlayer === 'A') {
+        setSongB(nextReadySong);
+      } else {
+        setSongA(nextReadySong);
+      }
+    }
+  }, [currentSong, nextReadySong, activePlayer, songA, songB]);
 
   // Drive each audio element from isPlaying + activePlayer. This is the
   // single source of truth — the <audio> element's own pause/play events do
   // not feed back into React state, which avoids the race where a fade-out
   // pause flips isPlaying off mid-crossfade.
-  const driveElement = useCallback((player: 'A' | 'B', audio: HTMLAudioElement | null) => {
+  const driveElement = useCallback((player: Player, audio: HTMLAudioElement | null) => {
     if (!audio) return undefined;
     const isActive = player === activePlayer;
+    const slotSong = player === 'A' ? songA : songB;
 
     if (isActive) {
       audio.volume = crossfadeDuration > 0 ? audio.volume : 1;
+      if (!slotSong) {
+        audio.pause();
+        return undefined;
+      }
       if (isPlaying) {
+        if (audio.ended) audio.currentTime = 0;
         const playPromise = audio.play();
         if (playPromise) {
           playPromise.catch(error => {
@@ -119,7 +137,7 @@ export function usePlaybackEngine({
       }
     }, FADE_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [activePlayer, crossfadeDuration, isPlaying]);
+  }, [activePlayer, crossfadeDuration, isPlaying, songA, songB]);
 
   useEffect(() => driveElement('A', audioRefA.current), [driveElement]);
   useEffect(() => driveElement('B', audioRefB.current), [driveElement]);
@@ -139,7 +157,7 @@ export function usePlaybackEngine({
     setActivePlayer(prev => (prev === 'A' ? 'B' : 'A'));
   }, [onAdvance]);
 
-  const handleTimeUpdate = useCallback((player: 'A' | 'B') => {
+  const handleTimeUpdate = useCallback((player: Player) => {
     if (player !== activePlayer) return;
     const audio = player === 'A' ? audioRefA.current : audioRefB.current;
     if (!audio) return;
@@ -158,7 +176,7 @@ export function usePlaybackEngine({
     }
   }, [activePlayer, crossfadeDuration, nextReadySong, advance]);
 
-  const handleEnded = useCallback((player: 'A' | 'B') => {
+  const handleEnded = useCallback((player: Player) => {
     if (player !== activePlayer) return;
     // If we never crossfaded (e.g. next song wasn't ready in time), still
     // advance now that this one has finished. The new song will start from
@@ -166,7 +184,7 @@ export function usePlaybackEngine({
     advance();
   }, [activePlayer, advance]);
 
-  const handleLoadedMetadata = useCallback((player: 'A' | 'B') => {
+  const handleLoadedMetadata = useCallback((player: Player) => {
     if (player !== activePlayer) return;
     const audio = player === 'A' ? audioRefA.current : audioRefB.current;
     if (audio?.duration) setDuration(audio.duration);

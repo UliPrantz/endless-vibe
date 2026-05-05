@@ -32,10 +32,10 @@ const QueueItemCard: React.FC<CardProps> = ({ item, role, isPlaying, maxAttempts
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9 }}
-        className="p-4 rounded-xl border-2 border-indigo-500/30 border-dashed bg-indigo-500/5 transition-all text-center w-full relative overflow-hidden flex flex-col items-center justify-center min-h-[5rem] shrink-0"
+        className="p-4 rounded-xl border-2 border-emerald-500/30 border-dashed bg-emerald-500/5 transition-all text-center w-full relative overflow-hidden flex flex-col items-center justify-center min-h-20 shrink-0"
       >
-        <Loader2 className="w-6 h-6 text-indigo-400 animate-spin mb-2" />
-        <div className="text-xs font-semibold italic text-indigo-300">Synthesizing Next...</div>
+        <Loader2 className="w-6 h-6 text-emerald-400 animate-spin mb-2" />
+        <div className="text-xs font-semibold italic text-emerald-300">Synthesizing Next...</div>
         {item.attempts > 1 && (
           <div className="text-[9px] text-amber-500 mt-1 uppercase tracking-widest bg-amber-500/20 px-1.5 py-0.5 rounded">
             Attempt {item.attempts}/{maxAttempts}

@@ -67,6 +67,8 @@ The dev server runs Vite on port `3000` and binds to `0.0.0.0`.
 - `npm run preview`: preview the production build
 - `npm run clean`: remove `dist`
 - `npm run lint`: run TypeScript checking with `tsc --noEmit`
+- `npm run test:run`: run the full Vitest suite
+- `npm run test:browser:run`: run browser-mode Vitest tests in Chromium
 
 ## Hosting
 
@@ -89,6 +91,25 @@ If deploying to Cloud Run or another server platform, use the Vite build as the 
 ## Architecture Notes For Coding Agents
 
 This section is intentionally explicit so future coding agents can use the README as durable project context.
+
+### Testing Architecture
+
+- Unit tests run in Vitest's `jsdom` project. Use them for reducers, selectors,
+  hook state transitions, and fast playback-engine checks with faked audio
+  elements.
+- Browser tests run in Vitest's browser project with Playwright/Chromium. Use
+  them sparingly for behavior that depends on real browser APIs. The autoplay
+  and crossfade regression lives here because real `<audio>` playback,
+  `currentTime`, `duration`, `paused`, and media events could not be debugged
+  reliably with mocks alone.
+- Browser mode is also useful for in-place debugging when agents need a full
+  feedback loop inside the repo instead of copying logs or manual observations
+  back and forth. Do not use it as the default for ordinary React rendering or
+  pure logic tests; keep those in unit tests so the suite stays quick and easy
+  to reason about.
+- Mock external music generation at `src/services/musicService.ts` for tests.
+  Browser playback tests use committed WAV fixtures in `src/test/fixtures/` so
+  Chromium decodes real audio while avoiding Google API calls.
 
 ### Current Shape
 
@@ -164,8 +185,12 @@ This section is intentionally explicit so future coding agents can use the READM
    element. Near the end of the active track (within `crossfadeDuration`
    seconds), it flips `activePlayer`, fades the outgoing element down, and
    fades the incoming one up. The cursor advances in the same tick.
-9. Manual Skip goes through the same advance path. If the buffer is empty,
-   skip is a no-op (the engine refuses to flip onto a slot with no song).
+9. If the active track ends before the next item is ready, the cursor can
+   advance onto the pending item. The UI shows the finished song as history and
+   the pending item as generating; playback resumes automatically when that
+   item resolves.
+10. Manual Skip goes through the same advance path. If there is no next queue
+   item at all, skip is a no-op.
 
 ### Important Invariants
 

@@ -86,16 +86,17 @@ export default function App() {
   const currentSong = getCurrentSong(playlist);
   const nextReadySong = getNextReadySong(playlist);
 
+  // The playback engine needs a synchronous yes/no so it can flip audio
+  // elements in the same handoff. The next queue item may still be pending;
+  // in that case the cursor advances and playback resumes when it resolves.
   const advanceCursorIfPossible = useCallback((): boolean => {
-    let advanced = false;
-    setPlaylist(prev => {
-      const next = advanceCursor(prev);
-      advanced = next.cursor !== prev.cursor;
-      return next;
-    });
-    if (advanced) setSongsSinceLastChange(s => s + 1);
-    return advanced;
-  }, []);
+    const hasNextItem = playlist.cursor + 1 < playlist.items.length;
+    if (!hasNextItem) return false;
+
+    setPlaylist(prev => advanceCursor(prev));
+    setSongsSinceLastChange(s => s + 1);
+    return true;
+  }, [playlist.cursor, playlist.items.length]);
 
   const playback = usePlaybackEngine({
     currentSong,
